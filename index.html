@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoga Self Help</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #fff;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        .timer {
+            font-size: 48px;
+            margin: 20px 0;
+            color: #e74c3c;
+        }
+        .instructions {
+            font-size: 24px;
+            margin: 20px 0;
+            color: #3498db;
+        }
+        .button-container {
+            margin: 20px 0;
+        }
+        .button {
+            font-size: 24px;
+            padding: 10px 20px;
+            margin: 0 10px;
+            background-color: #1abc9c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #16a085;
+        }
+        .music-button {
+            font-size: 18px;
+            padding: 5px 10px;
+            margin: 5px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .music-button:hover {
+            background-color: #2980b9;
+        }
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: #95a5a6;
+        }
+        .reset-button {
+            font-size: 18px;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .reset-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Yoga Self Help</h1>
+    <div class="instructions" id="instructions">Press Start to begin your yoga session</div>
+    <div class="timer" id="timer">10:00</div>
+    <div class="button-container">
+        <button class="button" id="start-button" onclick="startYoga()">Start</button>
+        <button class="button" id="pause-button" onclick="pauseYoga()">Pause</button>
+    </div>
+    <div class="button-container">
+        <button class="music-button" id="music1-button" onclick="changeMusic('file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/music1.mp3')">Music 1</button>
+        <button class="music-button" id="music2-button" onclick="changeMusic('file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/music2.m4a')">Music 2</button>
+        <button class="music-button" id="music3-button" onclick="handleMusicButtonClick(3)">Music 3</button>
+        <button class="music-button" id="music4-button" onclick="handleMusicButtonClick(4)">Music 4</button>
+        <button class="music-button" onclick="stopMusic()">Stop Music</button>
+    </div>
+    <button class="reset-button" onclick="resetMusicSelection()">Reset Music Selection</button>
+    <input type="file" id="file-input" accept=".mp3,.m4a" style="display: none;" onchange="handleFileSelect(event)">
+    <audio id="background-music" loop>
+        <source id="music-source" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="phase-music" onended="resumeBackgroundMusic()">
+        <source id="phase-music-source" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <div class="watermark">राहुल कुमार द्वारा बनाया गया</div>
+    <script>
+        let timer;
+        let timeLeft;
+        let currentPhase = 0;
+        let isPaused = false;
+        let selectedMusicFiles = {};
+
+        const phases = [
+            { name: "Kapalbhati", duration: 600, audio: 'file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/kapalbhati.mp3' },
+            { name: "Anulom Vilom", duration: 300, audio: 'file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/anulomvilom.mp3' },
+            { name: "Rub Hands and Put into Eyes", duration: 30, audio: 'file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/eyewarmth.mp3' },
+            { name: "Session Complete", duration: 0, audio: 'file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/cometomorrow.mp3' }
+        ];
+
+        function startYoga() {
+            if (timer) {
+                clearInterval(timer);
+            }
+            changeMusic('file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/music1.mp3');
+            currentPhase = 0;
+            isPaused = false;
+            startPhase();
+            document.getElementById('start-button').innerText = "Restart";
+        }
+
+        function startPhase() {
+            if (currentPhase < phases.length) {
+                const phase = phases[currentPhase];
+                document.getElementById('instructions').innerText = `Do ${phase.name}`;
+                timeLeft = phase.duration;
+                playPhaseAudio(phase.audio);
+                updateTimer();
+                timer = setInterval(updateTimer, 1000);
+            } else {
+                document.getElementById('instructions').innerText = "Yoga session completed!";
+                document.getElementById('background-music').pause();
+            }
+        }
+
+        function updateTimer() {
+            if (!isPaused) {
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    currentPhase++;
+                    startPhase();
+                } else {
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    document.getElementById('timer').innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                    timeLeft--;
+                }
+            }
+        }
+
+        function pauseYoga() {
+            isPaused = !isPaused;
+            const music = document.getElementById('background-music');
+            const phaseMusic = document.getElementById('phase-music');
+            if (isPaused) {
+                document.getElementById('instructions').innerText += " (Paused)";
+                document.getElementById('pause-button').innerText = "Resume";
+                music.pause();
+                phaseMusic.pause();
+            } else {
+                document.getElementById('instructions').innerText = `Do ${phases[currentPhase].name}`;
+                document.getElementById('pause-button').innerText = "Pause";
+                music.play();
+                phaseMusic.play();
+            }
+        }
+
+        function changeMusic(musicFile) {
+            const music = document.getElementById('background-music');
+            const musicSource = document.getElementById('music-source');
+            music.pause();
+            if (musicFile) {
+                musicSource.src = musicFile;
+                music.load();
+                music.play();
+            }
+        }
+
+        function handleMusicButtonClick(musicNumber) {
+            if (selectedMusicFiles[musicNumber]) {
+                changeMusic(selectedMusicFiles[musicNumber]);
+            } else {
+                selectMusicFile(musicNumber);
+            }
+        }
+
+        function selectMusicFile(musicNumber) {
+            const fileInput = document.getElementById('file-input');
+            fileInput.onchange = (event) => handleFileSelect(event, musicNumber);
+            fileInput.click();
+        }
+
+        function handleFileSelect(event, musicNumber) {
+            const file = event.target.files[0];
+            if (file) {
+                const filePath = URL.createObjectURL(file);
+                selectedMusicFiles[musicNumber] = filePath;
+                localStorage.setItem(`music${musicNumber}`, filePath);
+                document.getElementById(`music${musicNumber}-button`).innerText = file.name.substring(0, 5);
+                changeMusic(filePath);
+            }
+        }
+
+        function stopMusic() {
+            const music = document.getElementById('background-music');
+            music.pause();
+            music.currentTime = 0;
+        }
+
+        function resetMusicSelection() {
+            for (let i = 3; i <= 4; i++) {
+                localStorage.removeItem(`music${i}`);
+                selectedMusicFiles[i] = null;
+                document.getElementById(`music${i}-button`).innerText = `Music ${i}`;
+            }
+        }
+
+        function playPhaseAudio(audioFile) {
+            const phaseMusic = document.getElementById('phase-music');
+            const phaseMusicSource = document.getElementById('phase-music-source');
+            const backgroundMusic = document.getElementById('background-music');
+            backgroundMusic.pause();
+            phaseMusicSource.src = audioFile;
+            phaseMusic.load();
+            phaseMusic.play();
+        }
+
+        function resumeBackgroundMusic() {
+            const backgroundMusic = document.getElementById('background-music');
+            backgroundMusic.play();
+        }
+
+        window.onload = () => {
+            const music1Path = 'file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/music1.mp3';
+            const music2Path = 'file:///storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents/music2.m4a';
+            if (music1Path) {
+                document.getElementById('music1-button').innerText = 'Music 1';
+            }
+            if (music2Path) {
+                document.getElementById('music2-button').innerText = 'Music 2';
+            }
+            for (let i = 3; i <= 4; i++) {
+                const storedFilePath = localStorage.getItem(`music${i}`);
+                if (storedFilePath) {
+                    selectedMusicFiles[i] = storedFilePath;
+                    document.getElementById(`music${i}-button`).innerText = storedFilePath.split('/').pop().substring(0, 5);
+                }
+            }
+        };
+    </script>
+</body>
+</html>
